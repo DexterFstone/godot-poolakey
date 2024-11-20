@@ -29,6 +29,8 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
         signals.add(SignalInfo("purchase_succeed", Dictionary::class.java))
         signals.add(SignalInfo("purchase_canceled"))
         signals.add(SignalInfo("purchase_failed", String::class.java))
+        signals.add(SignalInfo("consume_succeed"))
+        signals.add(SignalInfo("consume_failed", String::class.java))
         return signals
     }
 
@@ -133,6 +135,18 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
             }
             purchaseFailed { throwable ->
                 emitSignal("purchase_failed", throwable.message)
+            }
+        }
+    }
+
+    @UsedByGodot
+    fun consume_product(purchase_token: String) {
+        payment.consumeProduct(purchase_token) {
+            consumeSucceed {
+                emitSignal("consume_succeed")
+            }
+            consumeFailed { throwable ->
+                emitSignal("consume_failed", throwable.message)
             }
         }
     }

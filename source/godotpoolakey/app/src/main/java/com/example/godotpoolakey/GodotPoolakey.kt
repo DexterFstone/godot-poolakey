@@ -1,10 +1,12 @@
 package com.example.godotpoolakey
 
+import android.util.Log
 import androidx.collection.ArraySet
 import androidx.fragment.app.FragmentActivity
 import ir.cafebazaar.poolakey.Payment
 import ir.cafebazaar.poolakey.config.PaymentConfiguration
 import ir.cafebazaar.poolakey.config.SecurityCheck
+import ir.cafebazaar.poolakey.entity.PurchaseInfo
 import ir.cafebazaar.poolakey.request.PurchaseRequest
 import org.godotengine.godot.Dictionary
 import org.godotengine.godot.Godot
@@ -31,6 +33,10 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
         signals.add(SignalInfo("purchase_failed", String::class.java))
         signals.add(SignalInfo("consume_succeed"))
         signals.add(SignalInfo("consume_failed", String::class.java))
+        signals.add(SignalInfo("purchased_query_succeed", Dictionary::class.java))
+        signals.add(SignalInfo("purchased_query_failed", String::class.java))
+        signals.add(SignalInfo("subscribed_query_succeed", Dictionary::class.java))
+        signals.add(SignalInfo("subscribed_query_failed", String::class.java))
         return signals
     }
 
@@ -150,4 +156,58 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
             }
         }
     }
+
+    @UsedByGodot
+    fun get_purchased_products() {
+        payment.getSubscribedProducts {
+            querySucceed { purchasedProducts ->
+                val products: Dictionary = Dictionary()
+                Log.d("godot", "get_purchased_products: $purchasedProducts")
+                for (purchasedProduct: PurchaseInfo in purchasedProducts) {
+                    val product: Dictionary = Dictionary()
+                    product.put("order_id", purchasedProduct.orderId)
+                    product.put("purchase_token", purchasedProduct.purchaseToken)
+                    product.put("payload", purchasedProduct.payload)
+                    product.put("package_name", purchasedProduct.packageName)
+                    product.put("purchase_state", purchasedProduct.purchaseState)
+                    product.put("purchase_time", purchasedProduct.purchaseTime)
+                    product.put("product_id", purchasedProduct.productId)
+                    product.put("original_json", purchasedProduct.originalJson)
+                    product.put("data_signature", purchasedProduct.dataSignature)
+                    products.put(purchasedProduct.orderId, product)
+                }
+                emitSignal("purchased_query_succeed", products)
+            }
+            queryFailed { throwable ->
+                emitSignal("purchased_query_failed", throwable.message)
+            }
+        }
+    }
+
+    @UsedByGodot
+    fun get_subscribed_products() {
+        payment.getSubscribedProducts {
+            querySucceed { purchasedProducts ->
+                val products: Dictionary = Dictionary()
+                for (purchasedProduct: PurchaseInfo in purchasedProducts) {
+                    val product: Dictionary = Dictionary()
+                    product.put("order_id", purchasedProduct.orderId)
+                    product.put("purchase_token", purchasedProduct.purchaseToken)
+                    product.put("payload", purchasedProduct.payload)
+                    product.put("package_name", purchasedProduct.packageName)
+                    product.put("purchase_state", purchasedProduct.purchaseState)
+                    product.put("purchase_time", purchasedProduct.purchaseTime)
+                    product.put("product_id", purchasedProduct.productId)
+                    product.put("original_json", purchasedProduct.originalJson)
+                    product.put("data_signature", purchasedProduct.dataSignature)
+                    products.put(purchasedProduct.orderId, product)
+                }
+                emitSignal("subscribed_query_succeed", products)
+            }
+            queryFailed { throwable ->
+                emitSignal("subscribed_query_failed", throwable.message)
+            }
+        }
+    }
 }
+

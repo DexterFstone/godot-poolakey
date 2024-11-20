@@ -96,4 +96,44 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
             }
         }
     }
+
+    @UsedByGodot
+    fun subscribe_product(product_id: String, payload: String, dynamic_price_token: String) {
+        val purchaseRequest = PurchaseRequest(
+            productId = product_id,
+            payload = payload,
+            dynamicPriceToken = dynamic_price_token
+        )
+        val fragment: FragmentActivity = activity as FragmentActivity
+        payment.subscribeProduct(
+            registry = fragment.activityResultRegistry,
+            request = purchaseRequest
+        ) {
+            purchaseFlowBegan {
+                emitSignal("purchase_flow_began")
+            }
+            failedToBeginFlow { throwable ->
+                emitSignal("failed_to_begin_flow", throwable.message)
+            }
+            purchaseSucceed { purchaseEntity ->
+                val purchase: Dictionary = Dictionary()
+                purchase.put("order_id", purchaseEntity.orderId)
+                purchase.put("purchase_token", purchaseEntity.purchaseToken)
+                purchase.put("payload", purchaseEntity.payload)
+                purchase.put("package_name", purchaseEntity.packageName)
+                purchase.put("purchase_state", purchaseEntity.purchaseState.ordinal)
+                purchase.put("purchase_time", purchaseEntity.purchaseTime)
+                purchase.put("product_id", purchaseEntity.productId)
+                purchase.put("original_json", purchaseEntity.originalJson)
+                purchase.put("data_signature", purchaseEntity.dataSignature)
+                emitSignal("purchase_succeed", purchase)
+            }
+            purchaseCanceled {
+                emitSignal("purchase_canceled")
+            }
+            purchaseFailed { throwable ->
+                emitSignal("purchase_failed", throwable.message)
+            }
+        }
+    }
 }

@@ -3,6 +3,7 @@ package com.example.godotpoolakey
 import android.util.Log
 import androidx.collection.ArraySet
 import androidx.fragment.app.FragmentActivity
+import ir.cafebazaar.poolakey.Connection
 import ir.cafebazaar.poolakey.Payment
 import ir.cafebazaar.poolakey.config.PaymentConfiguration
 import ir.cafebazaar.poolakey.config.SecurityCheck
@@ -15,6 +16,7 @@ import org.godotengine.godot.plugin.SignalInfo
 import org.godotengine.godot.plugin.UsedByGodot
 
 class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
+    private lateinit var paymentConnection: Connection
     private lateinit var payment: Payment
 
     override fun getPluginName(): String {
@@ -52,7 +54,7 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
             localSecurityCheck = localSecurityCheck
         )
         payment = Payment(context = activity!!, config = paymentConfiguration)
-        val paymentConnection = payment.connect {
+        paymentConnection = payment.connect {
             connectionSucceed {
                 emitSignal("connection_succeed")
             }
@@ -208,6 +210,11 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
                 emitSignal("subscribed_query_failed", throwable.message)
             }
         }
+    }
+
+    @UsedByGodot
+    fun disconnect_from_cafebazaar() {
+        paymentConnection.disconnect()
     }
 }
 

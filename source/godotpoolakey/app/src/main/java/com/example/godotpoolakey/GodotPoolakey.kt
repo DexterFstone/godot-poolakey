@@ -8,6 +8,7 @@ import ir.cafebazaar.poolakey.Payment
 import ir.cafebazaar.poolakey.config.PaymentConfiguration
 import ir.cafebazaar.poolakey.config.SecurityCheck
 import ir.cafebazaar.poolakey.entity.PurchaseInfo
+import ir.cafebazaar.poolakey.entity.SkuDetails
 import ir.cafebazaar.poolakey.request.PurchaseRequest
 import org.godotengine.godot.Dictionary
 import org.godotengine.godot.Godot
@@ -39,6 +40,8 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
         signals.add(SignalInfo("purchased_query_failed", String::class.java))
         signals.add(SignalInfo("subscribed_query_succeed", Dictionary::class.java))
         signals.add(SignalInfo("subscribed_query_failed", String::class.java))
+        signals.add(SignalInfo("get_sku_details_succeed", Dictionary::class.java))
+        signals.add(SignalInfo("get_sku_details_failed", String::class.java))
         return signals
     }
 
@@ -215,6 +218,29 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
     @UsedByGodot
     fun disconnect_from_cafebazaar() {
         paymentConnection.disconnect()
+    }
+
+    @UsedByGodot
+    fun get_in_app_sku_details(skuids: Array<String>) {
+        val list: List<String> = skuids.toList()
+        payment.getInAppSkuDetails(list) {
+            getSkuDetailsSucceed { skuDetails ->
+                val products: Dictionary = Dictionary()
+                for (sku: SkuDetails in skuDetails) {
+                    val product: Dictionary = Dictionary()
+                    product.put("sku", sku.sku)
+                    product.put("type", sku.type)
+                    product.put("price", sku.price)
+                    product.put("title", sku.title)
+                    product.put("description", sku.description)
+                    products.put(sku.sku, product)
+                }
+                emitSignal("get_sku_details_succeed", products)
+            }
+            getSkuDetailsFailed { throwable ->
+                emitSignal("get_sku_details_failed", throwable.message)
+            }
+        }
     }
 }
 

@@ -1,7 +1,11 @@
 package com.example.godotpoolakey
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.collection.ArraySet
+import androidx.core.content.ContextCompat.startActivity
+import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import ir.cafebazaar.poolakey.Connection
 import ir.cafebazaar.poolakey.Payment
@@ -15,6 +19,7 @@ import org.godotengine.godot.Godot
 import org.godotengine.godot.plugin.GodotPlugin
 import org.godotengine.godot.plugin.SignalInfo
 import org.godotengine.godot.plugin.UsedByGodot
+
 
 class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
     private lateinit var paymentConnection: Connection
@@ -241,6 +246,43 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
                 emitSignal("get_sku_details_failed", throwable.message)
             }
         }
+    }
+
+    @UsedByGodot
+    fun show_intent_details(package_name: String = "") {
+        var pn = package_name
+        if (pn.isEmpty())
+            pn = activity!!.packageName
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setData(Uri.parse("bazaar://details?id=$pn"))
+        intent.setPackage("com.farsitel.bazaar")
+        activity!!.startActivity(intent)
+    }
+
+    @UsedByGodot
+    fun show_intent_collection(developer_id: String) {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setData(Uri.parse("bazaar://collection?slug=by_author&aid=$developer_id"))
+        intent.setPackage("com.farsitel.bazaar")
+        activity!!.startActivity(intent)
+    }
+
+    @UsedByGodot
+    fun show_intent_login() {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setData(Uri.parse("bazaar://login"))
+        intent.setPackage("com.farsitel.bazaar")
+        activity!!.startActivity(intent)
+    }
+
+    @UsedByGodot
+    fun show_intent_update() {
+        val intent = Intent(
+            Intent.ACTION_VIEW,
+            "bazaar://details/modal?id=${activity!!.packageName}".toUri()
+        )
+        intent.setPackage("com.farsitel.bazaar")
+        activity!!.startActivity(intent)
     }
 }
 

@@ -44,6 +44,5 @@ dependencies {
     // TODO: Additional dependencies should be added to export_plugin.gd as well.
     implementation("com.github.cafebazaar.Poolakey:poolakey:2.2.0")
 //    implementation("com.github.cafebazaar.CafeBazaarAuth:auth:1.0.2")
-
     testImplementation("junit:junit:4.13.2")
 }

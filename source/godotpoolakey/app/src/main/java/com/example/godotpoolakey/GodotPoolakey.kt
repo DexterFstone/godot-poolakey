@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.collection.ArraySet
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import ir.cafebazaar.poolakey.Connection

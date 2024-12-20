@@ -168,10 +168,9 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun get_purchased_products() {
-        payment.getSubscribedProducts {
+        payment.getPurchasedProducts {
             querySucceed { purchasedProducts ->
                 val products: Dictionary = Dictionary()
-                Log.d("godot", "get_purchased_products: $purchasedProducts")
                 for (purchasedProduct: PurchaseInfo in purchasedProducts) {
                     val product: Dictionary = Dictionary()
                     product.put("order_id", purchasedProduct.orderId)

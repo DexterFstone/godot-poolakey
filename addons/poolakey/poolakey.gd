@@ -7,16 +7,16 @@ signal connection_failed(message: String)
 signal disconnected
 signal purchase_flow_began
 signal failed_to_begin_flow(message: String)
-signal purchase_succeed(purchase_info: Poolakey.PurchaseInfo)
+signal purchase_succeed(purchase_info: PurchaseInfo)
 signal purchase_canceled
 signal purchase_failed(message: String)
 signal consume_succeed
 signal consume_failed(message: String)
-signal purchased_query_succeed(items: Array[Poolakey.PurchaseInfo])
+signal purchased_query_succeed(items: Array[PurchaseInfo])
 signal purchased_query_failed(message: String)
-signal subscribed_query_succeed(items: Array[Poolakey.PurchaseInfo])
+signal subscribed_query_succeed(items: Array[PurchaseInfo])
 signal subscribed_query_failed(message: String)
-signal get_sku_details_succeed(items: Array[Poolakey.SkuDetails])
+signal get_sku_details_succeed(items: Array[SkuDetails])
 signal get_sku_details_failed(message: String)
 
 @export var public_key: String
@@ -176,48 +176,6 @@ func __on_get_sku_details_succeed(items: Dictionary) -> void:
 func __on_get_sku_details_failed(message: String) -> void:
 	get_sku_details_failed.emit(message)
 
-class SkuDetails extends RefCounted:
-
-	var sku: String
-	var type: String
-	var price: String
-	var title: String
-	var description: String
-
-	func _init(info: Dictionary) -> void:
-		sku = info.get("sku")
-		type = info.get("type")
-		price = info.get("price")
-		title = info.get("title")
-		description = info.get("description")
-
-class PurchaseInfo extends RefCounted:
-
-	enum PurchaseState {
-		PURCHASED,
-		REFUNDED,
-	}
-
-	var order_id: String
-	var purchase_token: String
-	var payload: String
-	var package_name: String
-	var purchase_state: PurchaseState
-	var purchase_time: int
-	var product_id: String
-	var original_json: String
-	var data_signature: String
-
-	func _init(info: Dictionary) -> void:
-		order_id = info.get("order_id")
-		purchase_token = info.get("purchase_token")
-		payload = info.get("payload")
-		package_name = info.get("package_name")
-		purchase_state = info.get("purchase_state")
-		purchase_time = info.get("purchase_time")
-		product_id = info.get("product_id")
-		original_json = info.get("original_json")
-		data_signature = info.get("data_signature")
 
 class Intent extends RefCounted:
 

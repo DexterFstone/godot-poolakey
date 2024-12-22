@@ -132,7 +132,7 @@ func __on_failed_to_begin_flow(message: String) -> void:
 
 func __on_purchase_succeed(info: Dictionary) -> void:
 	var purchase_info: PurchaseInfo = PurchaseInfo.new(info)
-	purchase_succeed.emit(info)
+	purchase_succeed.emit(purchase_info)
 
 func __on_purchase_canceled() -> void:
 	purchase_canceled.emit()

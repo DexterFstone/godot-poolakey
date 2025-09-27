@@ -2,7 +2,6 @@ package com.example.godotpoolakey
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.collection.ArraySet
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
@@ -44,206 +43,219 @@ class GodotPoolakey(godot: Godot?) : GodotPlugin(godot) {
         signals.add(SignalInfo("purchased_query_failed", String::class.java))
         signals.add(SignalInfo("subscribed_query_succeed", Dictionary::class.java))
         signals.add(SignalInfo("subscribed_query_failed", String::class.java))
-        signals.add(SignalInfo("get_sku_details_succeed", Dictionary::class.java))
-        signals.add(SignalInfo("get_sku_details_failed", String::class.java))
+        signals.add(SignalInfo("products_query_succeed", Dictionary::class.java))
+        signals.add(SignalInfo("products_query_failed", String::class.java))
         return signals
     }
 
     @UsedByGodot
-    fun connect_to_cafebazaar(public_key: String) {
-        godot.runOnUiThread(Runnable {
-
+    fun open_connection(public_key: String) {
+        godot.runOnHostThread(Runnable {
+            val localSecurityCheck = SecurityCheck.Enable(
+                rsaPublicKey = public_key
+            )
+            val paymentConfiguration = PaymentConfiguration(
+                localSecurityCheck = localSecurityCheck
+            )
+            payment = Payment(context = activity!!, config = paymentConfiguration)
+            paymentConnection = payment.connect {
+                connectionSucceed {
+                    emitSignal("connection_succeed")
+                }
+                connectionFailed { throwable ->
+                    emitSignal("connection_failed", throwable.message)
+                }
+                disconnected {
+                    emitSignal("disconnected")
+                }
+            }
         })
-        val localSecurityCheck = SecurityCheck.Enable(
-            rsaPublicKey = public_key
-        )
-        val paymentConfiguration = PaymentConfiguration(
-            localSecurityCheck = localSecurityCheck
-        )
-        payment = Payment(context = activity!!, config = paymentConfiguration)
-        paymentConnection = payment.connect {
-            connectionSucceed {
-                emitSignal("connection_succeed")
-            }
-            connectionFailed { throwable ->
-                emitSignal("connection_failed", throwable.message)
-            }
-            disconnected {
-                emitSignal("disconnected")
-            }
-        }
     }
 
     @UsedByGodot
     fun purchase_product(product_id: String, payload: String, dynamic_price_token: String) {
-        val purchaseRequest = PurchaseRequest(
-            productId = product_id,
-            payload = payload,
-            dynamicPriceToken = dynamic_price_token
-        )
-        val fragment: FragmentActivity = activity as FragmentActivity
-        payment.purchaseProduct(
-            registry = fragment.activityResultRegistry,
-            request = purchaseRequest
-        ) {
-            purchaseFlowBegan {
-                emitSignal("purchase_flow_began")
+        godot.runOnHostThread({
+            Runnable {
+                val purchaseRequest = PurchaseRequest(
+                    productId = product_id,
+                    payload = payload,
+                    dynamicPriceToken = dynamic_price_token
+                )
+                val fragment: FragmentActivity = activity as FragmentActivity
+                payment.purchaseProduct(
+                    registry = fragment.activityResultRegistry,
+                    request = purchaseRequest
+                ) {
+                    purchaseFlowBegan {
+                        emitSignal("purchase_flow_began")
+                    }
+                    failedToBeginFlow { throwable ->
+                        emitSignal("failed_to_begin_flow", throwable.message)
+                    }
+                    purchaseSucceed { purchaseEntity ->
+                        val purchase: Dictionary = Dictionary()
+                        purchase.put("order_id", purchaseEntity.orderId)
+                        purchase.put("purchase_token", purchaseEntity.purchaseToken)
+                        purchase.put("payload", purchaseEntity.payload)
+                        purchase.put("package_name", purchaseEntity.packageName)
+                        purchase.put("purchase_state", purchaseEntity.purchaseState.ordinal)
+                        purchase.put("purchase_time", purchaseEntity.purchaseTime)
+                        purchase.put("product_id", purchaseEntity.productId)
+                        purchase.put("original_json", purchaseEntity.originalJson)
+                        purchase.put("data_signature", purchaseEntity.dataSignature)
+                        emitSignal("purchase_succeed", purchase)
+                    }
+                    purchaseCanceled {
+                        emitSignal("purchase_canceled")
+                    }
+                    purchaseFailed { throwable ->
+                        emitSignal("purchase_failed", throwable.message)
+                    }
+                }
             }
-            failedToBeginFlow { throwable ->
-                emitSignal("failed_to_begin_flow", throwable.message)
-            }
-            purchaseSucceed { purchaseEntity ->
-                val purchase: Dictionary = Dictionary()
-                purchase.put("order_id", purchaseEntity.orderId)
-                purchase.put("purchase_token", purchaseEntity.purchaseToken)
-                purchase.put("payload", purchaseEntity.payload)
-                purchase.put("package_name", purchaseEntity.packageName)
-                purchase.put("purchase_state", purchaseEntity.purchaseState.ordinal)
-                purchase.put("purchase_time", purchaseEntity.purchaseTime)
-                purchase.put("product_id", purchaseEntity.productId)
-                purchase.put("original_json", purchaseEntity.originalJson)
-                purchase.put("data_signature", purchaseEntity.dataSignature)
-                emitSignal("purchase_succeed", purchase)
-            }
-            purchaseCanceled {
-                emitSignal("purchase_canceled")
-            }
-            purchaseFailed { throwable ->
-                emitSignal("purchase_failed", throwable.message)
-            }
-        }
+        })
     }
 
     @UsedByGodot
     fun subscribe_product(product_id: String, payload: String, dynamic_price_token: String) {
-        val purchaseRequest = PurchaseRequest(
-            productId = product_id,
-            payload = payload,
-            dynamicPriceToken = dynamic_price_token
-        )
-        val fragment: FragmentActivity = activity as FragmentActivity
-        payment.subscribeProduct(
-            registry = fragment.activityResultRegistry,
-            request = purchaseRequest
-        ) {
-            purchaseFlowBegan {
-                emitSignal("purchase_flow_began")
+        godot.runOnHostThread(Runnable {
+            val purchaseRequest = PurchaseRequest(
+                productId = product_id,
+                payload = payload,
+                dynamicPriceToken = dynamic_price_token
+            )
+            val fragment: FragmentActivity = activity as FragmentActivity
+            payment.subscribeProduct(
+                registry = fragment.activityResultRegistry,
+                request = purchaseRequest
+            ) {
+                purchaseFlowBegan {
+                    emitSignal("purchase_flow_began")
+                }
+                failedToBeginFlow { throwable ->
+                    emitSignal("failed_to_begin_flow", throwable.message)
+                }
+                purchaseSucceed { purchaseEntity ->
+                    val purchase: Dictionary = Dictionary()
+                    purchase.put("order_id", purchaseEntity.orderId)
+                    purchase.put("purchase_token", purchaseEntity.purchaseToken)
+                    purchase.put("payload", purchaseEntity.payload)
+                    purchase.put("package_name", purchaseEntity.packageName)
+                    purchase.put("purchase_state", purchaseEntity.purchaseState.ordinal)
+                    purchase.put("purchase_time", purchaseEntity.purchaseTime)
+                    purchase.put("product_id", purchaseEntity.productId)
+                    purchase.put("original_json", purchaseEntity.originalJson)
+                    purchase.put("data_signature", purchaseEntity.dataSignature)
+                    emitSignal("purchase_succeed", purchase)
+                }
+                purchaseCanceled {
+                    emitSignal("purchase_canceled")
+                }
+                purchaseFailed { throwable ->
+                    emitSignal("purchase_failed", throwable.message)
+                }
             }
-            failedToBeginFlow { throwable ->
-                emitSignal("failed_to_begin_flow", throwable.message)
-            }
-            purchaseSucceed { purchaseEntity ->
-                val purchase: Dictionary = Dictionary()
-                purchase.put("order_id", purchaseEntity.orderId)
-                purchase.put("purchase_token", purchaseEntity.purchaseToken)
-                purchase.put("payload", purchaseEntity.payload)
-                purchase.put("package_name", purchaseEntity.packageName)
-                purchase.put("purchase_state", purchaseEntity.purchaseState.ordinal)
-                purchase.put("purchase_time", purchaseEntity.purchaseTime)
-                purchase.put("product_id", purchaseEntity.productId)
-                purchase.put("original_json", purchaseEntity.originalJson)
-                purchase.put("data_signature", purchaseEntity.dataSignature)
-                emitSignal("purchase_succeed", purchase)
-            }
-            purchaseCanceled {
-                emitSignal("purchase_canceled")
-            }
-            purchaseFailed { throwable ->
-                emitSignal("purchase_failed", throwable.message)
-            }
-        }
+        })
     }
 
     @UsedByGodot
     fun consume_product(purchase_token: String) {
-        payment.consumeProduct(purchase_token) {
-            consumeSucceed {
-                emitSignal("consume_succeed")
+        godot.runOnHostThread(Runnable {
+            payment.consumeProduct(purchase_token) {
+                consumeSucceed {
+                    emitSignal("consume_succeed")
+                }
+                consumeFailed { throwable ->
+                    emitSignal("consume_failed", throwable.message)
+                }
             }
-            consumeFailed { throwable ->
-                emitSignal("consume_failed", throwable.message)
-            }
-        }
+        })
     }
 
     @UsedByGodot
     fun get_purchased_products() {
-        payment.getPurchasedProducts {
-            querySucceed { purchasedProducts ->
-                val products: Dictionary = Dictionary()
-                for (purchasedProduct: PurchaseInfo in purchasedProducts) {
-                    val product: Dictionary = Dictionary()
-                    product.put("order_id", purchasedProduct.orderId)
-                    product.put("purchase_token", purchasedProduct.purchaseToken)
-                    product.put("payload", purchasedProduct.payload)
-                    product.put("package_name", purchasedProduct.packageName)
-                    product.put("purchase_state", purchasedProduct.purchaseState)
-                    product.put("purchase_time", purchasedProduct.purchaseTime)
-                    product.put("product_id", purchasedProduct.productId)
-                    product.put("original_json", purchasedProduct.originalJson)
-                    product.put("data_signature", purchasedProduct.dataSignature)
-                    products.put(purchasedProduct.orderId, product)
+        godot.runOnHostThread(Runnable {
+            payment.getPurchasedProducts {
+                querySucceed { purchasedProducts ->
+                    val products: Dictionary = Dictionary()
+                    for (purchasedProduct: PurchaseInfo in purchasedProducts) {
+                        val product: Dictionary = Dictionary()
+                        product.put("order_id", purchasedProduct.orderId)
+                        product.put("purchase_token", purchasedProduct.purchaseToken)
+                        product.put("payload", purchasedProduct.payload)
+                        product.put("package_name", purchasedProduct.packageName)
+                        product.put("purchase_state", purchasedProduct.purchaseState)
+                        product.put("purchase_time", purchasedProduct.purchaseTime)
+                        product.put("product_id", purchasedProduct.productId)
+                        product.put("original_json", purchasedProduct.originalJson)
+                        product.put("data_signature", purchasedProduct.dataSignature)
+                        products.put(purchasedProduct.orderId, product)
+                    }
+                    emitSignal("purchased_query_succeed", products)
                 }
-                emitSignal("purchased_query_succeed", products)
+                queryFailed { throwable ->
+                    emitSignal("purchased_query_failed", throwable.message)
+                }
             }
-            queryFailed { throwable ->
-                emitSignal("purchased_query_failed", throwable.message)
-            }
-        }
+        })
     }
 
     @UsedByGodot
     fun get_subscribed_products() {
-        payment.getSubscribedProducts {
-            querySucceed { purchasedProducts ->
-                val products: Dictionary = Dictionary()
-                for (purchasedProduct: PurchaseInfo in purchasedProducts) {
-                    val product: Dictionary = Dictionary()
-                    product.put("order_id", purchasedProduct.orderId)
-                    product.put("purchase_token", purchasedProduct.purchaseToken)
-                    product.put("payload", purchasedProduct.payload)
-                    product.put("package_name", purchasedProduct.packageName)
-                    product.put("purchase_state", purchasedProduct.purchaseState)
-                    product.put("purchase_time", purchasedProduct.purchaseTime)
-                    product.put("product_id", purchasedProduct.productId)
-                    product.put("original_json", purchasedProduct.originalJson)
-                    product.put("data_signature", purchasedProduct.dataSignature)
-                    products.put(purchasedProduct.orderId, product)
+        godot.runOnHostThread(Runnable {
+            payment.getSubscribedProducts {
+                querySucceed { purchasedProducts ->
+                    val products: Dictionary = Dictionary()
+                    for (purchasedProduct: PurchaseInfo in purchasedProducts) {
+                        val product: Dictionary = Dictionary()
+                        product.put("order_id", purchasedProduct.orderId)
+                        product.put("purchase_token", purchasedProduct.purchaseToken)
+                        product.put("payload", purchasedProduct.payload)
+                        product.put("package_name", purchasedProduct.packageName)
+                        product.put("purchase_state", purchasedProduct.purchaseState)
+                        product.put("purchase_time", purchasedProduct.purchaseTime)
+                        product.put("product_id", purchasedProduct.productId)
+                        product.put("original_json", purchasedProduct.originalJson)
+                        product.put("data_signature", purchasedProduct.dataSignature)
+                        products.put(purchasedProduct.orderId, product)
+                    }
+                    emitSignal("subscribed_query_succeed", products)
                 }
-                emitSignal("subscribed_query_succeed", products)
+                queryFailed { throwable ->
+                    emitSignal("subscribed_query_failed", throwable.message)
+                }
             }
-            queryFailed { throwable ->
-                emitSignal("subscribed_query_failed", throwable.message)
-            }
-        }
+        })
     }
 
     @UsedByGodot
-    fun disconnect_from_cafebazaar() {
+    fun close_connection() {
         paymentConnection.disconnect()
     }
 
     @UsedByGodot
-    fun get_in_app_sku_details(skuids: Array<String>) {
-        val list: List<String> = skuids.toList()
-        payment.getInAppSkuDetails(list) {
-            getSkuDetailsSucceed { skuDetails ->
-                val products: Dictionary = Dictionary()
-                for (sku: SkuDetails in skuDetails) {
-                    val product: Dictionary = Dictionary()
-                    product.put("sku", sku.sku)
-                    product.put("type", sku.type)
-                    product.put("price", sku.price)
-                    product.put("title", sku.title)
-                    product.put("description", sku.description)
-                    products.put(sku.sku, product)
+    fun get_products(sku_ids: Array<String>) {
+        godot.runOnHostThread(Runnable {
+            val list: List<String> = sku_ids.toList()
+            payment.getInAppSkuDetails(list) {
+                getSkuDetailsSucceed { skuDetails ->
+                    val products: Dictionary = Dictionary()
+                    for (sku: SkuDetails in skuDetails) {
+                        val product: Dictionary = Dictionary()
+                        product.put("sku", sku.sku)
+                        product.put("type", sku.type)
+                        product.put("price", sku.price)
+                        product.put("title", sku.title)
+                        product.put("description", sku.description)
+                        products.put(sku.sku, product)
+                    }
+                    emitSignal("products_query_succeed", products)
                 }
-                emitSignal("get_sku_details_succeed", products)
+                getSkuDetailsFailed { throwable ->
+                    emitSignal("products_query_failed", throwable.message)
+                }
             }
-            getSkuDetailsFailed { throwable ->
-                emitSignal("get_sku_details_failed", throwable.message)
-            }
-        }
+        })
     }
 
     @UsedByGodot

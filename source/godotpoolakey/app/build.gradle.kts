@@ -2,18 +2,14 @@ import com.android.build.gradle.internal.tasks.factory.dependsOn
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
 }
 
-// TODO: Update value to your plugin's name.
 val pluginName = "GodotPoolakey"
-
-// TODO: Update value to match your plugin's package name.
 val pluginPackageName = "com.example.godotpoolakey"
 
 android {
     namespace = pluginPackageName
-    compileSdk = 33
+    compileSdk = 35
 
     buildFeatures {
         buildConfig = true
@@ -21,7 +17,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
 
         manifestPlaceholders["godotPluginName"] = pluginName
         manifestPlaceholders["godotPluginPackageName"] = pluginPackageName
@@ -34,15 +30,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 }
 
 dependencies {
-    implementation("org.godotengine:godot:4.2.0.stable")
-    // TODO: Additional dependencies should be added to export_plugin.gd as well.
+    implementation("org.godotengine:godot:4.5.0.stable")
     implementation("com.github.cafebazaar.Poolakey:poolakey:2.2.0")
-//    implementation("com.github.cafebazaar.CafeBazaarAuth:auth:1.0.2")
     testImplementation("junit:junit:4.13.2")
 }

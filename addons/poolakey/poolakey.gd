@@ -1,196 +1,442 @@
 @icon("res://addons/poolakey/logo.svg")
+@abstract
 class_name Poolakey
-extends Node
+extends Object
 
-signal connection_succeed
-signal connection_failed(message: String)
-signal disconnected
-signal purchase_flow_began
-signal failed_to_begin_flow(message: String)
-signal purchase_succeed(purchase_info: PurchaseInfo)
-signal purchase_canceled
-signal purchase_failed(message: String)
-signal consume_succeed
-signal consume_failed(message: String)
-signal purchased_query_succeed(items: Array[PurchaseInfo])
-signal purchased_query_failed(message: String)
-signal subscribed_query_succeed(items: Array[PurchaseInfo])
-signal subscribed_query_failed(message: String)
-signal get_sku_details_succeed(items: Array[SkuDetails])
-signal get_sku_details_failed(message: String)
+static var _singleton: JNISingleton
+static var _singleton_name: String = "GodotPoolakey"
 
-@export var public_key: String
+## [codeblock]
+## 	Poolakey.open_connection(PUBLIC_KEY,
+## 		func connection_succeed() -> void:
+## 			return, # Connection succeed
+##
+## 		func connection_failed(message: String) -> void:
+## 			return, # Connection failed
+##
+## 		func disconnected() -> void:
+## 			return # Disconnected
+## 	)
+## [/codeblock]
+static func open_connection(public_key: String, succeed: Callable, failed: Callable, disconnected: Callable) -> void:
+	if not _has_singleton():
+		return
+	
+	_singleton = _get_singleton()
+	_singleton.open_connection(public_key)
+	
+	var connection_succeed: Callable = func () -> void:
+		succeed.call()
+	
+	var connection_failed: Callable = func (message: String) -> void:
+		failed.call(message)
+		
+	var connection_disconnected: Callable = func () -> void:
+		disconnected.call()
+		
+	if not _singleton.connection_succeed.is_connected(connection_succeed):
+		_singleton.connection_succeed.connect(connection_succeed, CONNECT_ONE_SHOT)
+	
+	if not _singleton.connection_failed.is_connected(connection_failed):
+		_singleton.connection_failed.connect(connection_failed, CONNECT_ONE_SHOT)
+	
+	if not _singleton.disconnected.is_connected(connection_disconnected):
+		_singleton.disconnected.connect(connection_disconnected, CONNECT_ONE_SHOT)
 
-static var _plugin: JNISingleton
-static var _plugin_name: String = "GodotPoolakey"
+## [codeblock]
+## 	Poolakey.purchase_product("product_id", "payload", "dynamic_price_token",
+## 		func purchase_flow_began() -> void:
+## 			return, # Purchase flow began
+##
+## 		func failed_to_begin_flow(message: String) -> void:
+## 			return, # Failed to begin flow
+##
+## 		func purchase_succeed(purchase: Poolakey.Purchase) -> void:
+## 			return, # Purchase succeed
+##
+## 		func purchase_canceled() -> void:
+## 			return, # Purchase canceled
+##
+## 		func purchase_failed(message: String) -> void:
+## 			return # Purchase failed
+## 	)
+## [/codeblock]
+static func purchase_product(product_id: String, payload: String, dynamic_price_token: String, flow_began: Callable, failed_to_begin: Callable, succeed: Callable, canceled: Callable, failed: Callable) -> void:
+	if not _has_poolakey():
+		return
+	
+	_singleton.purchase_product(product_id, payload, dynamic_price_token)
+	
+	var on_flow_began: Callable = func () -> void:
+		flow_began.call()
 
-func _ready() -> void:
-	connect_to_cafebazaar()
+	var on_failed_to_begin: Callable = func (message: String) -> void:
+		failed_to_begin.call(message)
 
-func connect_to_cafebazaar(public_key: String = "") -> void:
-	if self.public_key.is_empty():
-		self.public_key = public_key
-	if self.public_key.is_empty(): return
-	if not _has_singleton(): return
-	_plugin = _get_singleton()
-	_plugin.connect_to_cafebazaar(self.public_key)
-	if not _plugin.is_connected("connection_succeed", __on_connection_succeed):
-		_plugin.connection_succeed.connect(__on_connection_succeed, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("connection_failed", __on_connection_failed):
-		_plugin.connection_failed.connect(__on_connection_failed, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("disconnected", __on_disconnected):
-		_plugin.disconnected.connect(__on_disconnected, CONNECT_ONE_SHOT)
+	var on_succeed: Callable = func (data: Dictionary) -> void:
+		succeed.call(Purchase.new(data))
+	
+	var on_canceled: Callable = func () -> void:
+		canceled.call()
+	
+	var on_failed: Callable = func (message: String) -> void:
+		failed.call(message)
+	
+	if not _singleton.purchase_flow_began.is_connected(on_flow_began):
+		_singleton.purchase_flow_began.connect(on_flow_began, CONNECT_ONE_SHOT)
+	
+	if not _singleton.failed_to_begin_flow.is_connected(on_failed_to_begin):
+		_singleton.failed_to_begin_flow.connect(on_failed_to_begin, CONNECT_ONE_SHOT)
+	
+	if not _singleton.purchase_succeed.is_connected(on_succeed):
+		_singleton.purchase_succeed.connect(on_succeed, CONNECT_ONE_SHOT)
 
-func purchase_product(product_id: String, payload: String = "", dynamic_price_token: String = "") -> void:
-	if not _has_poolakey(): return
-	_plugin.purchase_product(product_id, payload, dynamic_price_token)
-	if not _plugin.is_connected("purchase_flow_began", __on_purchase_flow_began):
-		_plugin.purchase_flow_began.connect(__on_purchase_flow_began, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("failed_to_begin_flow", __on_failed_to_begin_flow):
-		_plugin.failed_to_begin_flow.connect(__on_failed_to_begin_flow, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("purchase_succeed", __on_purchase_succeed):
-		_plugin.purchase_succeed.connect(__on_purchase_succeed, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("purchase_canceled", __on_purchase_canceled):
-		_plugin.purchase_canceled.connect(__on_purchase_canceled, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("purchase_failed", __on_purchase_failed):
-		_plugin.purchase_failed.connect(__on_purchase_failed, CONNECT_ONE_SHOT)
+	if not _singleton.purchase_canceled.is_connected(on_canceled):
+		_singleton.purchase_canceled.connect(on_canceled, CONNECT_ONE_SHOT)
 
-func subscribe_product(product_id: String, payload: String = "", dynamic_price_token: String = "") -> void:
-	if not _has_poolakey(): return
-	_plugin.purchase_product(product_id, payload, dynamic_price_token)
-	if not _plugin.is_connected("purchase_flow_began", __on_purchase_flow_began):
-		_plugin.purchase_flow_began.connect(__on_purchase_flow_began, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("failed_to_begin_flow", __on_failed_to_begin_flow):
-		_plugin.failed_to_begin_flow.connect(__on_failed_to_begin_flow, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("purchase_succeed", __on_purchase_succeed):
-		_plugin.purchase_succeed.connect(__on_purchase_succeed, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("purchase_canceled", __on_purchase_canceled):
-		_plugin.purchase_canceled.connect(__on_purchase_canceled, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("purchase_failed", __on_purchase_failed):
-		_plugin.purchase_failed.connect(__on_purchase_failed, CONNECT_ONE_SHOT)
+	if not _singleton.purchase_failed.is_connected(on_failed):
+		_singleton.purchase_failed.connect(on_failed, CONNECT_ONE_SHOT)
 
-func consume_product(purchase_info: PurchaseInfo) -> void:
-	if not _has_poolakey(): return
-	var purchase_token: String = purchase_info.purchase_token
-	_plugin.consume_product(purchase_token)
-	if not _plugin.is_connected("consume_succeed", __on_consume_succeed):
-		_plugin.consume_succeed.connect(__on_consume_succeed, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("consume_failed", __on_consume_failed):
-		_plugin.consume_failed.connect(__on_consume_failed, CONNECT_ONE_SHOT)
+## [codeblock]
+## 	Poolakey.subscribe_product("product_id", "payload", "dynamic_price_token",
+## 		func purchase_flow_began() -> void:
+## 			return, # Subscription flow began
+##
+## 		func failed_to_begin_flow(message: String) -> void:
+## 			return, # Failed to begin subscription flow
+##
+## 		func subscription_succeed(purchase: Poolakey.Purchase) -> void:
+## 			return, # Subscription succeed
+##
+## 		func subscription_canceled() -> void:
+## 			return, # Subscription canceled
+##
+## 		func subscription_failed(message: String) -> void:
+## 			return # Subscription failed
+## 	)
+## [/codeblock]
+static func subscribe_product(product_id: String, payload: String, dynamic_price_token: String, flow_began: Callable, failed_to_begin: Callable, succeed: Callable, canceled: Callable, failed: Callable) -> void:
+	if not _has_poolakey():
+		return
+	
+	_singleton.purchase_product(product_id, payload, dynamic_price_token)
 
-func get_purchased_products() -> void:
-	if not _has_poolakey(): return
-	_plugin.get_purchased_products()
-	if not _plugin.is_connected("purchased_query_succeed", __on_purchased_query_succeed):
-		_plugin.purchased_query_succeed.connect(__on_purchased_query_succeed, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("purchased_query_failed", __on_purchased_query_failed):
-		_plugin.purchased_query_failed.connect(__on_purchased_query_failed, CONNECT_ONE_SHOT)
+	var on_flow_began: Callable = func () -> void:
+		flow_began.call()
+	
+	var on_failed_to_begin: Callable = func (message: String) -> void:
+		failed_to_begin.call(message)
+	
+	var on_succeed: Callable = func (data: Dictionary) -> void:
+		succeed.call(Purchase.new(data))
+	
+	var on_canceled: Callable = func () -> void:
+		canceled.call()
+	
+	var on_failed: Callable = func (message: String) -> void:
+		failed.call(message)
+	
+	if not _singleton.purchase_flow_began.is_connected(on_flow_began):
+		_singleton.purchase_flow_began.connect(on_flow_began, CONNECT_ONE_SHOT)
 
-func get_subscribed_products() -> void:
-	if not _has_poolakey(): return
-	_plugin.get_subscribed_products()
-	if not _plugin.is_connected("subscribed_query_succeed", __on_subscribed_query_succeed):
-		_plugin.subscribed_query_succeed.connect(__on_subscribed_query_succeed, CONNECT_ONE_SHOT)
-	if not _plugin.is_connected("subscribed_query_failed", __on_subscribed_query_failed):
-		_plugin.subscribed_query_failed.connect(__on_subscribed_query_failed, CONNECT_ONE_SHOT)
+	if not _singleton.failed_to_begin_flow.is_connected(on_failed_to_begin):
+		_singleton.failed_to_begin_flow.connect(on_failed_to_begin, CONNECT_ONE_SHOT)
 
-func get_in_app_sku_details(item_skus: Array[String]) -> void:
-	if not _has_poolakey(): return
-	_plugin.get_in_app_sku_details(item_skus)
-	if not _plugin.is_connected("get_sku_details_succeed", __on_get_sku_details_succeed):
-		_plugin.get_sku_details_succeed.connect(__on_get_sku_details_succeed)
-	if not _plugin.is_connected("get_sku_details_failed", __on_get_sku_details_failed):
-		_plugin.get_sku_details_failed.connect(__on_get_sku_details_failed)
+	if not _singleton.purchase_succeed.is_connected(on_succeed):
+		_singleton.purchase_succeed.connect(on_succeed, CONNECT_ONE_SHOT)
 
-func disconnect_from_cafebazaar() -> void:
-	if not _has_poolakey(): return
-	_plugin.disconnect_from_cafebazaar()
+	if not _singleton.purchase_canceled.is_connected(on_canceled):
+		_singleton.purchase_canceled.connect(on_canceled, CONNECT_ONE_SHOT)
+
+	if not _singleton.purchase_failed.is_connected(on_failed):
+		_singleton.purchase_failed.connect(on_failed, CONNECT_ONE_SHOT)
+
+## [codeblock]
+## 	Poolakey.consume_product(purchase,
+## 		func consume_succeed() -> void:
+## 			return, # Consume succeed
+##
+## 		func consume_failed(message: String) -> void:
+## 			return # Consume failed
+## 	)
+## [/codeblock]
+static func consume_product(purchase: Purchase, succeed: Callable, failed: Callable) -> void:
+	if not _has_poolakey():
+		return
+	
+	var purchase_token: String = purchase.purchase_token
+	_singleton.consume_product(purchase_token)
+	
+	var consume_succeed: Callable = func () -> void:
+		succeed.call()
+	
+	var consume_failed: Callable = func (message: String) -> void:
+		failed.call(message)
+	
+	if not _singleton.consume_succeed.is_connected(consume_succeed):
+		_singleton.consume_succeed.connect(consume_succeed, CONNECT_ONE_SHOT)
+
+	if not _singleton.consume_failed.is_connected(consume_failed):
+		_singleton.consume_failed.connect(consume_failed, CONNECT_ONE_SHOT)
+
+## [codeblock]
+## 	Poolakey.get_purchased_products(
+## 		func purchased_query_succeed(purchases: Array[Poolakey.Purchase]) -> void:
+## 			return, # Query purchased products succeed
+##
+## 		func purchased_query_failed(message: String) -> void:
+## 			return # Query purchased products failed
+## 	)
+## [/codeblock]
+static func get_purchased_products(succeed: Callable, failed: Callable) -> void:
+	if not _has_poolakey():
+		return
+	
+	_singleton.get_purchased_products()
+	
+	var query_succeed: Callable = func (data: Dictionary) -> void:
+		var purchases: Array[Purchase]
+		for purchase: Dictionary in data.values():
+			var new_purchase: Purchase = Purchase.new(purchase)
+			purchases.append(new_purchase)
+		succeed.call(purchases)
+	
+	var query_failed: Callable = func (message: String) -> void:
+		failed.call(message)
+	
+	if not _singleton.purchased_query_succeed.is_connected(query_succeed):
+		_singleton.purchased_query_succeed.connect(query_succeed, CONNECT_ONE_SHOT)
+
+	if not _singleton.purchased_query_failed.is_connected(query_failed):
+		_singleton.purchased_query_failed.connect(query_failed, CONNECT_ONE_SHOT)
+
+## [codeblock]
+## 	Poolakey.get_subscribed_products(
+## 		func subscribed_query_succeed(subscriptions: Array[Poolakey.Purchase]) -> void:
+## 			return, # Query subscribed products succeed
+##
+## 		func subscribed_query_failed(message: String) -> void:
+## 			return # Query subscribed products failed
+## 	)
+## [/codeblock]
+static func get_subscribed_products(succeed: Callable, failed: Callable) -> void:
+	if not _has_poolakey():
+		return
+
+	_singleton.get_subscribed_products()
+
+	var query_succeed: Callable = func (data: Dictionary) -> void:
+		var purchases: Array[Purchase]
+		for purchase: Dictionary in data.values():
+			var new_purchase: Purchase = Purchase.new(purchase)
+			purchases.append(new_purchase)
+		succeed.call(purchases)
+	
+	var query_failed: Callable = func (message: String) -> void:
+		failed.call(message)
+	
+	if not _singleton.subscribed_query_succeed.is_connected(query_succeed):
+		_singleton.subscribed_query_succeed.connect(query_succeed, CONNECT_ONE_SHOT)
+
+	if not _singleton.subscribed_query_failed.is_connected(query_failed):
+		_singleton.subscribed_query_failed.connect(query_failed, CONNECT_ONE_SHOT)
+
+## [codeblock]
+## 	Poolakey.get_products(ITEM_SKUS,
+## 		func products_query_succeed(products: Array[Poolakey.Product]) -> void:
+## 			return, # Query products succeed
+##
+## 		func products_query_failed(message: String) -> void:
+## 			return # Query products failed
+## 	)
+## [/codeblock]
+static func get_products(sku_ids: Array[String], succeed: Callable, failed: Callable) -> void:
+	if not _has_poolakey():
+		return
+
+	_singleton.get_in_app_sku_details(sku_ids)
+
+	var query_succeed: Callable = func (data: Dictionary) -> void:
+		var products: Array[Product]
+		for product: Dictionary in data.values():
+			var new_product: Product = Product.new(product)
+			products.append(new_product)
+		succeed.call(products)
+	
+	var query_failed: Callable = func (message: String) -> void:
+		failed.call(message)
+	
+	if not _singleton.products_query_succeed.is_connected(query_succeed):
+		_singleton.products_query_succeed.connect(query_succeed, CONNECT_ONE_SHOT)
+
+	if not _singleton.products_query_failed.is_connected(query_failed):
+		_singleton.products_query_failed.connect(query_failed, CONNECT_ONE_SHOT)
+
+
+static func close_connection() -> void:
+	if not _has_poolakey():
+		return
+	
+	_singleton.close_connection()
+	_singleton.free()
+	_singleton = null
+
 
 static func _has_poolakey() -> bool:
-	return is_instance_valid(_plugin)
-
-func _has_singleton() -> bool:
-	return Engine.has_singleton(_plugin_name)
-
-func _get_singleton() -> Object:
-	return Engine.get_singleton(_plugin_name)
-
-func __on_connection_succeed() -> void:
-	connection_succeed.emit()
-
-func __on_connection_failed(message: String) -> void:
-	connection_failed.emit(message)
-
-func __on_disconnected() -> void:
-	disconnected.emit()
-
-func __on_purchase_flow_began() -> void:
-	purchase_flow_began.emit()
-
-func __on_failed_to_begin_flow(message: String) -> void:
-	failed_to_begin_flow.emit(message)
-
-func __on_purchase_succeed(info: Dictionary) -> void:
-	var purchase_info: PurchaseInfo = PurchaseInfo.new(info)
-	purchase_succeed.emit(purchase_info)
-
-func __on_purchase_canceled() -> void:
-	purchase_canceled.emit()
-
-func __on_purchase_failed(message: String) -> void:
-	purchase_failed.emit(message)
-
-func __on_consume_succeed() -> void:
-	consume_succeed.emit()
-
-func __on_consume_failed(message: String) -> void:
-	consume_failed.emit(message)
-
-func __on_purchased_query_succeed(items: Dictionary) -> void:
-	var purchase_info_list: Array[PurchaseInfo]
-	for value: Dictionary in items.values():
-		var purchase_info: PurchaseInfo = PurchaseInfo.new(value)
-		purchase_info_list.append(purchase_info)
-	purchased_query_succeed.emit(purchase_info_list)
-
-func __on_purchased_query_failed(message: String) -> void:
-	purchased_query_failed.emit(message)
-
-func __on_subscribed_query_succeed(items: Dictionary) -> void:
-	var purchase_info_list: Array[PurchaseInfo]
-	for value: Dictionary in items.values():
-		var purchase_info: PurchaseInfo = PurchaseInfo.new(value)
-		purchase_info_list.append(purchase_info)
-	subscribed_query_succeed.emit(purchase_info_list)
-
-func __on_subscribed_query_failed(message: String) -> void:
-	subscribed_query_failed.emit(message)
-
-func __on_get_sku_details_succeed(items: Dictionary) -> void:
-	var sku_details_list: Array[SkuDetails]
-	for value: Dictionary in items.values():
-		var sku_details: SkuDetails = SkuDetails.new(value)
-		sku_details_list.append(sku_details)
-	get_sku_details_succeed.emit(sku_details_list)
-
-func __on_get_sku_details_failed(message: String) -> void:
-	get_sku_details_failed.emit(message)
+	return is_instance_valid(_singleton)
 
 
-class Intent extends RefCounted:
+static func _has_singleton() -> bool:
+	return Engine.has_singleton(_singleton_name)
+
+
+static func _get_singleton() -> Object:
+	return Engine.get_singleton(_singleton_name)
+
+@abstract class Intent extends RefCounted:
 
 	static func show_details(package_name: String = "") -> void:
 		if not Poolakey._has_poolakey(): return
-		Poolakey._plugin.show_intent_details(package_name)
+		Poolakey._singleton.show_intent_details(package_name)
+
 
 	static func show_collection(developer_id: String) -> void:
 		if not Poolakey._has_poolakey(): return
-		Poolakey._plugin.show_intent_collection(developer_id)
+		Poolakey._singleton.show_intent_collection(developer_id)
+
 
 	static func show_login() -> void:
 		if not Poolakey._has_poolakey(): return
-		Poolakey._plugin.show_intent_login()
+		Poolakey._singleton.show_intent_login()
+
 
 	static func show_update() -> void:
 		if not Poolakey._has_poolakey(): return
-		Poolakey._plugin.show_intent_update()
+		Poolakey._singleton.show_intent_update()
+
+class Product extends RefCounted:
+
+	var _sku: String
+	var sku: String:
+		get = get_sku
+	var _type: String
+	var type: String:
+		get = get_type
+	var _price: String
+	var price: String:
+		get = get_price
+	var _title: String
+	var title: String:
+		get = get_title
+	var _description: String
+	var description: String:
+		get = get_description
+
+	func _init(data: Dictionary) -> void:
+		sku = data.get("sku", "")
+		type = data.get("type", "")
+		price = data.get("price", "")
+		title = data.get("title", "")
+		description = data.get("description", "")
+
+
+	func get_sku() -> String:
+		return _sku
+
+
+	func get_type() -> String:
+		return _type
+
+
+	func get_price() -> String:
+		return _price
+
+
+	func get_title() -> String:
+		return _title
+
+
+	func get_description() -> String:
+		return _description
+
+class Purchase extends RefCounted:
+
+	enum PurchaseState {
+		PURCHASED,
+		REFUNDED,
+	}
+
+	var order_id: String:
+		get = get_order_id
+	var _order_id: String
+	var purchase_token: String:
+		get = get_purchase_token
+	var _purchase_token: String
+	var payload: String:
+		get = get_payload
+	var _payload: String
+	var package_name: String:
+		get = get_package_name
+	var _package_name: String
+	var purchase_state: PurchaseState:
+		get = get_purchase_state
+	var _purchase_state: PurchaseState
+	var purchase_time: int:
+		get = get_purchase_time
+	var _purchase_time: int
+	var product_id: String:
+		get = get_product_id
+	var _product_id: String
+	var original_json: String:
+		get = get_original_json
+	var _original_json: String
+	var data_signature: String:
+		get = get_data_signature
+	var _data_signature: String
+
+	func _init(data: Dictionary) -> void:
+		order_id = data.get("order_id", "")
+		purchase_token = data.get("purchase_token", "")
+		payload = data.get("payload", "")
+		package_name = data.get("package_name", "")
+		purchase_state = data.get("purchase_state", -1)
+		purchase_time = data.get("purchase_time", 0)
+		product_id = data.get("product_id", "")
+		original_json = data.get("original_json", "")
+		data_signature = data.get("data_signature", "")
+
+
+	func get_order_id() -> String:
+		return _order_id
+
+
+	func get_purchase_token() -> String:
+		return _purchase_token
+
+
+	func get_payload() -> String:
+		return _payload
+
+
+	func get_package_name() -> String:
+		return _package_name
+
+
+	func get_purchase_state() -> PurchaseState:
+		return _purchase_state
+
+
+	func get_purchase_time() -> int:
+		return _purchase_time
+
+
+	func get_product_id() -> String:
+		return _product_id
+
+
+	func get_original_json() -> String:
+		return _original_json
+
+
+	func get_data_signature() -> String:
+		return _data_signature

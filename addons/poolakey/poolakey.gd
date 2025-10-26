@@ -254,7 +254,7 @@ static func get_products(sku_ids: Array[String], succeed: Callable, failed: Call
 	if not _has_poolakey():
 		return
 
-	_singleton.get_in_app_sku_details(sku_ids)
+	_singleton.get_products(sku_ids)
 
 	var query_succeed: Callable = func (data: Dictionary) -> void:
 		var products: Array[Product]

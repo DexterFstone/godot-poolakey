@@ -315,22 +315,11 @@ static func _get_singleton() -> Object:
 		Poolakey._singleton.show_intent_update()
 
 class Product extends RefCounted:
-
-	var _sku: String
-	var sku: String:
-		get = get_sku
-	var _type: String
-	var type: String:
-		get = get_type
-	var _price: String
-	var price: String:
-		get = get_price
-	var _title: String
-	var title: String:
-		get = get_title
-	var _description: String
-	var description: String:
-		get = get_description
+	var sku: String
+	var type: String
+	var price: String
+	var title: String
+	var description: String
 
 	func _init(data: Dictionary) -> void:
 		sku = data.get("sku", "")
@@ -340,25 +329,6 @@ class Product extends RefCounted:
 		description = data.get("description", "")
 
 
-	func get_sku() -> String:
-		return _sku
-
-
-	func get_type() -> String:
-		return _type
-
-
-	func get_price() -> String:
-		return _price
-
-
-	func get_title() -> String:
-		return _title
-
-
-	func get_description() -> String:
-		return _description
-
 class Purchase extends RefCounted:
 
 	enum PurchaseState {
@@ -366,33 +336,15 @@ class Purchase extends RefCounted:
 		REFUNDED,
 	}
 
-	var order_id: String:
-		get = get_order_id
-	var _order_id: String
-	var purchase_token: String:
-		get = get_purchase_token
-	var _purchase_token: String
-	var payload: String:
-		get = get_payload
-	var _payload: String
-	var package_name: String:
-		get = get_package_name
-	var _package_name: String
-	var purchase_state: PurchaseState:
-		get = get_purchase_state
-	var _purchase_state: PurchaseState
-	var purchase_time: int:
-		get = get_purchase_time
-	var _purchase_time: int
-	var product_id: String:
-		get = get_product_id
-	var _product_id: String
-	var original_json: String:
-		get = get_original_json
-	var _original_json: String
-	var data_signature: String:
-		get = get_data_signature
-	var _data_signature: String
+	var order_id: String
+	var purchase_token: String
+	var payload: String
+	var package_name: String
+	var purchase_state: PurchaseState
+	var purchase_time: int
+	var product_id: String
+	var original_json: String
+	var data_signature: String
 
 	func _init(data: Dictionary) -> void:
 		order_id = data.get("order_id", "")
@@ -404,39 +356,3 @@ class Purchase extends RefCounted:
 		product_id = data.get("product_id", "")
 		original_json = data.get("original_json", "")
 		data_signature = data.get("data_signature", "")
-
-
-	func get_order_id() -> String:
-		return _order_id
-
-
-	func get_purchase_token() -> String:
-		return _purchase_token
-
-
-	func get_payload() -> String:
-		return _payload
-
-
-	func get_package_name() -> String:
-		return _package_name
-
-
-	func get_purchase_state() -> PurchaseState:
-		return _purchase_state
-
-
-	func get_purchase_time() -> int:
-		return _purchase_time
-
-
-	func get_product_id() -> String:
-		return _product_id
-
-
-	func get_original_json() -> String:
-		return _original_json
-
-
-	func get_data_signature() -> String:
-		return _data_signature

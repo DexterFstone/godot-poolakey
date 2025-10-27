@@ -316,28 +316,29 @@ static func _get_singleton() -> Object:
 
 class Product extends RefCounted:
 
-	var _sku: String
 	var sku: String:
 		get = get_sku
-	var _type: String
 	var type: String:
 		get = get_type
-	var _price: String
 	var price: String:
 		get = get_price
-	var _title: String
 	var title: String:
 		get = get_title
-	var _description: String
 	var description: String:
 		get = get_description
+	
+	var _sku: String
+	var _type: String
+	var _price: String
+	var _title: String
+	var _description: String
 
 	func _init(data: Dictionary) -> void:
-		sku = data.get("sku", "")
-		type = data.get("type", "")
-		price = data.get("price", "")
-		title = data.get("title", "")
-		description = data.get("description", "")
+		_sku = data.get("sku", "")
+		_type = data.get("type", "")
+		_price = data.get("price", "")
+		_title = data.get("title", "")
+		_description = data.get("description", "")
 
 
 	func get_sku() -> String:
@@ -368,42 +369,43 @@ class Purchase extends RefCounted:
 
 	var order_id: String:
 		get = get_order_id
-	var _order_id: String
 	var purchase_token: String:
 		get = get_purchase_token
-	var _purchase_token: String
 	var payload: String:
 		get = get_payload
-	var _payload: String
 	var package_name: String:
 		get = get_package_name
-	var _package_name: String
 	var purchase_state: PurchaseState:
 		get = get_purchase_state
-	var _purchase_state: PurchaseState
 	var purchase_time: int:
 		get = get_purchase_time
-	var _purchase_time: int
 	var product_id: String:
 		get = get_product_id
-	var _product_id: String
 	var original_json: String:
 		get = get_original_json
-	var _original_json: String
 	var data_signature: String:
 		get = get_data_signature
+	
+	var _order_id: String
+	var _purchase_token: String
+	var _payload: String
+	var _package_name: String
+	var _purchase_state: PurchaseState
+	var _purchase_time: int
+	var _product_id: String
+	var _original_json: String
 	var _data_signature: String
 
 	func _init(data: Dictionary) -> void:
-		order_id = data.get("order_id", "")
-		purchase_token = data.get("purchase_token", "")
-		payload = data.get("payload", "")
-		package_name = data.get("package_name", "")
-		purchase_state = data.get("purchase_state", -1)
-		purchase_time = data.get("purchase_time", 0)
-		product_id = data.get("product_id", "")
-		original_json = data.get("original_json", "")
-		data_signature = data.get("data_signature", "")
+		_order_id = data.get("order_id", "")
+		_purchase_token = data.get("purchase_token", "")
+		_payload = data.get("payload", "")
+		_package_name = data.get("package_name", "")
+		_purchase_state = data.get("purchase_state", -1)
+		_purchase_time = data.get("purchase_time", 0)
+		_product_id = data.get("product_id", "")
+		_original_json = data.get("original_json", "")
+		_data_signature = data.get("data_signature", "")
 
 
 	func get_order_id() -> String:
